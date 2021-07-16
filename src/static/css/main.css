@@ -1,0 +1,75 @@
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+#left, #right {
+  padding: 0;
+  height: 100%;
+  width: 50%;
+}
+
+#left {
+  position: fixed;
+  left: 0;
+}
+
+#right {
+  position: fixed;
+  right: 0;
+}
+
+#input-container {
+  background-color: #eee;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 50%;
+  width: 100%;
+}
+
+#input {
+  text-align: center;
+}
+
+#input input {
+  font-size: 1em;
+}
+
+#diff {
+  background-color: #ddf;
+
+  text-align: center;
+
+  height: 50%;
+  width: 100%;
+  overflow: auto;
+}
+
+#history {
+  background-color: #ddd;
+
+  overflow: auto;
+
+  height: 100%;
+  width: 100%;
+}
+
+#history .title {
+  font-size: 2em;
+  text-align: center;
+  padding-top: 0.5em;
+}
+
+#history .scan {
+  background-color: #bbb;
+  margin: 1em;
+  padding: 1em;
+  border-radius: 5px;
+}
+
+#history .scan p {
+  margin: 0;
+}
