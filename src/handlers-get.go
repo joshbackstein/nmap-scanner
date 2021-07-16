@@ -41,6 +41,11 @@ func getScansHelper(w http.ResponseWriter, address string, numScans int) {
 		return
 	}
 
+	if len(scans) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
 	if err := json.NewEncoder(w).Encode(scans); err != nil {
@@ -61,7 +66,7 @@ func GetPreviousScanHandler(w http.ResponseWriter, r *http.Request) {
 	scan, err := getPreviousScan(db, scanId)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			w.WriteHeader(http.StatusNoContent)
+			w.WriteHeader(http.StatusNotFound)
 			return
 		} else {
 			log.Println("Error getting previous scan")
