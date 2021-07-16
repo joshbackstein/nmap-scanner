@@ -35,6 +35,9 @@ func portsToStringSlice(intPorts []int) []string {
 func portsToIntSlice(stringPorts []string) ([]int, error) {
 	intPorts := []int{}
 	for _, stringPort := range stringPorts {
+		if len(stringPort) == 0 {
+			continue
+		}
 		intPort, err := strconv.Atoi(stringPort)
 		if err != nil {
 			return nil, err
