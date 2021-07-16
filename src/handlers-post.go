@@ -13,7 +13,16 @@ func PostScanHandler(w http.ResponseWriter, r *http.Request) {
 	address := vars["host"]
 
 	// Get open ports on host
-	ports := getOpenPorts(address)
+	ports, err := getOpenPorts(address)
+	if err != nil {
+		if err == InvalidHostError {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
 
 	// Write to DB
 	scan, err := writeToDatabase(db, address, ports)

@@ -1,29 +1,52 @@
 package main
 
 import (
+	"errors"
 	"log"
+	"net"
 	"os/exec"
 	"strings"
 	"unicode"
 )
 
-func getOpenPorts(address string) []string {
-	output := runNmap(address)
-	return parsePorts(output)
+var InvalidHostError error = errors.New("Invalid host")
+
+func getOpenPorts(address string) ([]string, error) {
+	output, err := runNmap(address)
+	if err != nil {
+		return nil, err
+	}
+	return parsePorts(*output), nil
 }
 
-func runNmap(address string) string {
+func runNmap(address string) (*string, error) {
+	if !isValidHost(address) {
+		return nil, InvalidHostError
+	}
+
 	log.Println("Running Nmap for \"" + address + "\"")
-
-	// TODO: Sanitize address to ensure it is a valid IP/host
-
-	output, err := exec.Command("nmap", "--open", "-p0-1000", address).Output()
+	outputBytes, err := exec.Command("nmap", "--open", "-p0-1000", address).Output()
 	if err != nil {
 		log.Println("Error running Nmap")
 		log.Println(err.Error())
+		return nil, err
+	}
+	output := string(outputBytes)
+
+	return &output, nil
+}
+
+func isValidHost(address string) bool {
+	addrs, err := net.LookupHost(address)
+	if err != nil {
+		return false
 	}
 
-	return string(output)
+	if len(addrs) == 0 {
+		return false
+	}
+
+	return true
 }
 
 func parsePorts(output string) []string {
