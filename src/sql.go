@@ -9,15 +9,48 @@ import (
 	"time"
 )
 
-func writeToDatabase(db *sql.DB, address string, ports []string) (*Scan, error) {
+func writeToDatabase(db *sql.DB, address string, ports []string) (*CommittedScan, error) {
 	intPorts, err := portsToIntSlice(ports)
 	if err != nil {
 		return nil, err
 	}
-	scan := Scan{address, time.Now(), intPorts}
-	insertScan(db, scan)
+
+	// We're rounding to the nearest second to keep things consistent with what
+	// we get back from the database
+	ucScan := UncommittedScan{address, time.Now().Round(time.Second), intPorts}
+	id, err := insertScan(db, ucScan)
+	if err != nil {
+		return nil, err
+	}
+
+	scan := CommittedScan{id, ucScan.Host, ucScan.DateTime, ucScan.Ports}
 
 	return &scan, nil
+}
+
+func insertScan(db *sql.DB, scan UncommittedScan) (int, error) {
+	hostId, err := getHostId(db, scan.Host)
+	if err != nil {
+		return 0, err
+	}
+
+	ports := portsToStringSlice(scan.Ports)
+	stmt, err := db.Prepare("INSERT INTO Scans (host_id, time, ports) VALUES (?,?,?)")
+	if err != nil {
+		return 0, err
+	}
+
+	result, err := stmt.Exec(hostId, scan.DateTime, strings.Join(ports, ","))
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
 }
 
 func getHostId(db *sql.DB, address string) (int, error) {
@@ -44,24 +77,10 @@ func getHostId(db *sql.DB, address string) (int, error) {
 	return getHostId(db, address)
 }
 
-func insertScan(db *sql.DB, scan Scan) error {
-	hostId, err := getHostId(db, scan.Host)
-	if err != nil {
-		return err
-	}
-
-	ports := portsToStringSlice(scan.Ports)
-	_, err = db.Exec("INSERT INTO Scans (host_id, time, ports) VALUES (?,?,?)", hostId, scan.DateTime, strings.Join(ports, ","))
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func getScansForHost(db *sql.DB, address string, numScans int) ([]PartialScan, error) {
+func getScansForHost(db *sql.DB, address string, numScans int) ([]PartialCommittedScan, error) {
 	// Determine which query to use
-	sql := "SELECT time, ports FROM Scans JOIN Hosts ON Hosts.id = Scans.host_id WHERE address = ? ORDER BY Scans.id DESC"
+	//sql := "SELECT Scans.id, time, ports FROM Scans JOIN Hosts ON Hosts.id = Scans.host_id WHERE address = ? ORDER BY Scans.id DESC"
+	sql := "SELECT Scans.id, time, ports FROM Scans JOIN Hosts ON Hosts.id = Scans.host_id WHERE address = ? ORDER BY Scans.id DESC"
 	if numScans > 0 {
 		sql = sql + " LIMIT " + strconv.Itoa(numScans)
 	}
@@ -74,11 +93,12 @@ func getScansForHost(db *sql.DB, address string, numScans int) ([]PartialScan, e
 	defer results.Close()
 
 	// Convert results
-	scans := []PartialScan{}
+	scans := []PartialCommittedScan{}
 	for results.Next() {
+		var id int = 0
 		var timeString string
 		var portListString string
-		err = results.Scan(&timeString, &portListString)
+		err = results.Scan(&id, &timeString, &portListString)
 		if err != nil {
 			return nil, err
 		}
@@ -94,19 +114,27 @@ func getScansForHost(db *sql.DB, address string, numScans int) ([]PartialScan, e
 			return nil, err
 		}
 
-		scans = append(scans, PartialScan{t, intPorts})
+		scans = append(scans, PartialCommittedScan{id, t, intPorts})
 	}
 
 	return scans, nil
 }
 
-func getPreviousScanForHost(db *sql.DB, address string, dateTime time.Time) (*PartialScan, error) {
-	sql := "SELECT time, ports FROM Scans JOIN Hosts ON Hosts.id = Scans.host_id WHERE address = ? AND time < ? ORDER BY Scans.id DESC LIMIT 1"
-	row := db.QueryRow(sql, address, dateTime)
+func getPreviousScan(db *sql.DB, scanId int) (*CommittedScan, error) {
+	sql := "SELECT Scans.id, time, ports, address FROM Scans JOIN Hosts ON Hosts.id = Scans.host_id JOIN (SELECT host_id FROM Scans WHERE id = ?) nested ON Hosts.id = nested.host_id WHERE Scans.id < ? ORDER BY Scans.id DESC LIMIT 1"
+	scanIdString := strconv.Itoa(scanId)
+	row := db.QueryRow(sql, scanIdString, scanIdString)
 
-	var t time.Time
+	var id int = 0
+	var timeString string
 	var portListString string
-	err := row.Scan(&t, &portListString)
+	var address string
+	err := row.Scan(&id, &timeString, &portListString, &address)
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := time.Parse("2006-01-02 15:04:05", timeString)
 	if err != nil {
 		return nil, err
 	}
@@ -117,5 +145,5 @@ func getPreviousScanForHost(db *sql.DB, address string, dateTime time.Time) (*Pa
 		return nil, err
 	}
 
-	return &PartialScan{t, intPorts}, nil
+	return &CommittedScan{id, address, t, intPorts}, nil
 }

@@ -5,13 +5,21 @@ import (
 	"time"
 )
 
-type PartialScan struct {
+type UncommittedScan struct {
+	Host     string
 	DateTime time.Time
 	Ports    []int
 }
 
-type Scan struct {
+type CommittedScan struct {
+	Id       int
 	Host     string
+	DateTime time.Time
+	Ports    []int
+}
+
+type PartialCommittedScan struct {
+	Id       int
 	DateTime time.Time
 	Ports    []int
 }
