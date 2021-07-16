@@ -79,7 +79,6 @@ func getHostId(db *sql.DB, address string) (int, error) {
 
 func getScansForHost(db *sql.DB, address string, numScans int) ([]PartialCommittedScan, error) {
 	// Determine which query to use
-	//sql := "SELECT Scans.id, time, ports FROM Scans JOIN Hosts ON Hosts.id = Scans.host_id WHERE address = ? ORDER BY Scans.id DESC"
 	sql := "SELECT Scans.id, time, ports FROM Scans JOIN Hosts ON Hosts.id = Scans.host_id WHERE address = ? ORDER BY Scans.id DESC"
 	if numScans > 0 {
 		sql = sql + " LIMIT " + strconv.Itoa(numScans)
