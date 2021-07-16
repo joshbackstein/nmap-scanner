@@ -11,7 +11,6 @@ type Route struct {
 }
 
 var routes = []Route{
-	Route{"GET", "/", GetRootHandler},
 	Route{"GET", "/api/hosts/{host}/scans", GetScansHandler},
 	Route{"GET", "/api/hosts/{host}/scans/{numScans}", GetNumScansHandler},
 	Route{"GET", "/api/scans/{scanId}/previousByHost", GetPreviousScanHandler},

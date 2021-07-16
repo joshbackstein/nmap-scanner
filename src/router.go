@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/mux"
+	"net/http"
 )
 
 func NewRouter() *mux.Router {
@@ -13,6 +14,8 @@ func NewRouter() *mux.Router {
 			Path(route.Pattern).
 			Handler(route.HandlerFunc)
 	}
+
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static")))
 
 	return router
 }

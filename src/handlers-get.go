@@ -9,10 +9,6 @@ import (
 	"strconv"
 )
 
-func GetRootHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO: Serve up the actual index here
-}
-
 func GetScansHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	address := vars["host"]
