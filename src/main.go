@@ -10,6 +10,7 @@ import (
 var db *sql.DB
 
 func main() {
+	// TODO: Get these from environment variables with default values
 	// Variables
 	HTTP_PORT := "8080"
 	MYSQL_USERNAME := "root"
